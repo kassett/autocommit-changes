@@ -21,6 +21,8 @@ runs:
       shell: bash
       run: |
         
+        branch="${BRANCH##*/}"
+        
         if [ "$TOKEN" = "" ]; then
           token="$SECRET_TOKEN"
         else
@@ -28,15 +30,20 @@ runs:
         fi
         
         changed_files=$(git diff --name-only --diff-filter=M)
+        
         for file in $changed_files; do
+          
           sha=$( git rev-parse $BRANCH:$file )
+          
           content=$( base64 -i $file )
+          
           gh api --method PUT /repos/:owner/:repo/contents/$file \
           --field message="$MESSAGE" \
           --field content="$content" \
           --field encoding="base64" \
           --field branch="$BRANCH" \
-          --field sha="$sha"   
+          --field sha="$sha"  
+        
         done
       env:
         BRANCH: ${{ github.ref }}
@@ -48,16 +55,30 @@ runs:
       if: ${{ inputs.untracked-files }} == "true"
       shell: bash
       run: |
+        
+        branch="${BRANCH##*/}"
+        
+        if [ "$TOKEN" = "" ]; then
+          token="$SECRET_TOKEN"
+        else
+          token="$TOKEN"
+        fi
+        
         untracked_files=$(git ls-files --others --exclude-standard)
+        
         for file in $untracked_files; do
+        
           sha=$( git rev-parse $BRANCH:$file )
+        
           content=$( base64 -i $file )
+        
           gh api --method PUT /repos/:owner/:repo/contents/$file \
           --field message="$MESSAGE" \
           --field content="$content" \
           --field encoding="base64" \
           --field branch="$BRANCH" \
-          --field sha="$sha"   
+          --field sha="$sha"  
+        
         done
       env:
         BRANCH: ${{ github.ref }}
