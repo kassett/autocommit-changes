@@ -1,6 +1,8 @@
+
 name: Autocommit Changed Files
 author: kassett
 description: Autocommit all files that have changed - or optionally that have been added -- in a repository.
+
 inputs:
   untracked-files:
     default: "false"
@@ -14,6 +16,7 @@ inputs:
     default: ""
     required: false
     description: An optional Github token to be passed for committing the files.
+
 runs:
   using: composite
   steps:
@@ -49,7 +52,7 @@ runs:
         BRANCH: ${{ github.ref }}
         MESSAGE: ${{ inputs.commit-message }}
         TOKEN: ${{ inputs.github-token }}
-        SECRET_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SECRET_TOKEN: ${{ github.token }}
 
     - name: Commit Untracked Files to Github
       if: ${{ inputs.untracked-files }} == "true"
@@ -84,6 +87,6 @@ runs:
         BRANCH: ${{ github.ref }}
         MESSAGE: ${{ inputs.commit-message }}
         TOKEN: ${{ inputs.github-token }}
-        SECRET_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        SECRET_TOKEN: ${{ github.token }}
 
 
