@@ -1,0 +1,68 @@
+name: Autocommit Changed Files
+author: kassett
+description: Autocommit all files that have changed - or optionally that have been added -- in a repository.
+inputs:
+  untracked-files:
+    default: "false"
+    required: false
+    description: True allows untracked files to be committed as well.
+  commit-message:
+    default: "Auto-committing files [skip ci]"
+    required: false
+    description: The message that will be passed to the Github API during commit.
+  github-token:
+    default: ""
+    required: false
+    description: An optional Github token to be passed for committing the files.
+runs:
+  using: composite
+  steps:
+    - name: Commit Changed Files to Github
+      shell: bash
+      run: |
+        
+        if [ "$TOKEN" = "" ]; then
+          token="$SECRET_TOKEN"
+        else
+          token="$TOKEN"
+        fi
+        
+        changed_files=$(git diff --name-only --diff-filter=M)
+        for file in $changed_files; do
+          sha=$( git rev-parse $BRANCH:$file )
+          content=$( base64 -i $file )
+          gh api --method PUT /repos/:owner/:repo/contents/$file \
+          --field message="$MESSAGE" \
+          --field content="$content" \
+          --field encoding="base64" \
+          --field branch="$BRANCH" \
+          --field sha="$sha"   
+        done
+      env:
+        BRANCH: ${{ github.ref }}
+        MESSAGE: ${{ inputs.commit-message }}
+        TOKEN: ${{ inputs.github-token }}
+        SECRET_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Commit Untracked Files to Github
+      if: ${{ inputs.untracked-files }} == "true"
+      shell: bash
+      run: |
+        untracked_files=$(git ls-files --others --exclude-standard)
+        for file in $untracked_files; do
+          sha=$( git rev-parse $BRANCH:$file )
+          content=$( base64 -i $file )
+          gh api --method PUT /repos/:owner/:repo/contents/$file \
+          --field message="$MESSAGE" \
+          --field content="$content" \
+          --field encoding="base64" \
+          --field branch="$BRANCH" \
+          --field sha="$sha"   
+        done
+      env:
+        BRANCH: ${{ github.ref }}
+        MESSAGE: ${{ inputs.commit-message }}
+        TOKEN: ${{ inputs.github-token }}
+        SECRET_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
