@@ -18,7 +18,7 @@ inputs:
     description: An optional Github token to be passed for committing the files.
   branch:
     required: false
-    default: main
+    default: "main"
     description: "The target branch to push to."
 
 runs:
