@@ -16,6 +16,9 @@ inputs:
     default: ""
     required: false
     description: An optional Github token to be passed for committing the files.
+  branch:
+    required: true
+    description: "The target branch to push to."
 
 runs:
   using: composite
@@ -50,7 +53,7 @@ runs:
         
         done
       env:
-        BRANCH: ${{ github.ref }}
+        BRANCH: ${{ inputs.branch }}
         MESSAGE: ${{ inputs.commit-message }}
         TOKEN: ${{ inputs.github-token }}
         SECRET_TOKEN: ${{ github.token }}
@@ -86,7 +89,7 @@ runs:
         
         done
       env:
-        BRANCH: ${{ github.ref }}
+        BRANCH: ${{ inputs.branch }}
         MESSAGE: ${{ inputs.commit-message }}
         GH_TOKEN: ${{ inputs.github-token }}
         SECRET_TOKEN: ${{ github.token }}
