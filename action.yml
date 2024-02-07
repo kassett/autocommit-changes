@@ -48,7 +48,6 @@ runs:
           --field encoding="base64" \
           --field branch="$BRANCH" \
           --field sha="$sha"  
-        
         done
       env:
         BRANCH: ${{ inputs.branch }}
