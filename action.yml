@@ -31,6 +31,7 @@ runs:
         else
           token="$TOKEN"
         fi
+        export GH_TOKEN="$token"
         
         changed_files=$(git diff --name-only --diff-filter=M)
         
@@ -66,6 +67,7 @@ runs:
         else
           token="$TOKEN"
         fi
+        export GH_TOKEN="$token"
         
         untracked_files=$(git ls-files --others --exclude-standard)
         
@@ -86,7 +88,7 @@ runs:
       env:
         BRANCH: ${{ github.ref }}
         MESSAGE: ${{ inputs.commit-message }}
-        TOKEN: ${{ inputs.github-token }}
+        GH_TOKEN: ${{ inputs.github-token }}
         SECRET_TOKEN: ${{ github.token }}
 
 
