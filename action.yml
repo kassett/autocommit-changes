@@ -26,8 +26,7 @@ runs:
   steps:
     - name: Commit Changed Files to Github
       shell: bash
-      run: |
-              
+      run: |     
         if [ "$TOKEN" = "" ]; then
           token="$SECRET_TOKEN"
         else
@@ -60,7 +59,6 @@ runs:
       if: ${{ inputs.untracked-files }} == "true"
       shell: bash
       run: |
-                
         if [ "$TOKEN" = "" ]; then
           token="$SECRET_TOKEN"
         else
