@@ -21,12 +21,19 @@ inputs:
     default: "main"
     description: "The target branch to push to."
 
+outputs:
+  sha:
+    description: "The new sha of the commit that was created."
+    value: ${{ steps.correct.outputs.NEW_SHA }}
+
 runs:
   using: composite
   steps:
     - name: Commit Changed Files to Github
+      id: tracked
       shell: bash
       run: |
+        new_sha=""
         git fetch origin $BRANCH:$BRANCH
         if [ "$TOKEN" = "" ]; then
           token="$SECRET_TOKEN"
@@ -43,13 +50,17 @@ runs:
           
           content=$( base64 -i $file )
           
-          gh api --method PUT /repos/:owner/:repo/contents/$file \
+          result=$(gh api --method PUT /repos/:owner/:repo/contents/$file \
           --field message="$MESSAGE" \
           --field content="$content" \
           --field encoding="base64" \
           --field branch="$BRANCH" \
-          --field sha="$sha"  
+          --field sha="$sha")
+          new_sha=$(echo "$result" | jq -r '.commit.sha')
         done
+        
+        echo "NEW_SHA=$new_sha" >> $GITHUB_OUTPUT
+
       env:
         BRANCH: ${{ inputs.branch }}
         MESSAGE: ${{ inputs.commit-message }}
@@ -57,9 +68,11 @@ runs:
         SECRET_TOKEN: ${{ github.token }}
 
     - name: Commit Untracked Files to Github
+      id: untracked
       if: ${{ inputs.untracked-files }} == "true"
       shell: bash
       run: |
+        new_sha=""
         git fetch origin $BRANCH:$BRANCH
         if [ "$TOKEN" = "" ]; then
           token="$SECRET_TOKEN"
@@ -71,23 +84,35 @@ runs:
         untracked_files=$(git ls-files --others --exclude-standard)
         
         for file in $untracked_files; do
-        
-          sha=$( git rev-parse $BRANCH:$file )
-        
+                
           content=$( base64 -i $file )
         
-          gh api --method PUT /repos/:owner/:repo/contents/$file \
+          result=$(gh api --method PUT /repos/:owner/:repo/contents/$file \
           --field message="$MESSAGE" \
           --field content="$content" \
           --field encoding="base64" \
-          --field branch="$BRANCH" \
-          --field sha="$sha"  
-        
+          --field branch="$BRANCH")
+          new_sha=$(echo "$result" | jq -r '.commit.sha')
         done
+        
+        echo "NEW_SHA=$new_sha" >> $GITHUB_OUTPUT
       env:
         BRANCH: ${{ inputs.branch }}
         MESSAGE: ${{ inputs.commit-message }}
         GH_TOKEN: ${{ inputs.github-token }}
         SECRET_TOKEN: ${{ github.token }}
+
+    - name: Get correct sha
+      id: correct
+      shell: bash
+      run: |
+        if [ "$NEW_SHA2" == "" ]; then
+          echo "NEW_SHA=$NEW_SHA1" >> $GITHUB_OUTPUT
+        fi
+        echo "NEW_SHA=$NEW_SHA2" >> $GITHUB_OUTPUT
+
+      env:
+        NEW_SHA1: ${{ steps.tracked.outputs.NEW_SHA }}
+        NEW_SHA2: ${{ steps.untracked.outputs.NEW_SHA }}
 
 
