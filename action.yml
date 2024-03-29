@@ -106,7 +106,7 @@ runs:
       id: correct
       shell: bash
       run: |
-        if [ "$NEW_SHA2" == "" ]; then
+        if [ "$NEW_SHA2" = "" ]; then
           echo "NEW_SHA=$NEW_SHA1" >> $GITHUB_OUTPUT
         fi
         echo "NEW_SHA=$NEW_SHA2" >> $GITHUB_OUTPUT
