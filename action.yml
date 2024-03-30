@@ -102,6 +102,8 @@ runs:
             try:
                 with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
                     print(f"SHA={last_commit}", file=fh)
+                with open(os.environ["GITHUB_ENV"], "a") as fh:
+                    print(f"SHA={last_commit}", file=fh)
             except KeyError:
                 print(last_commit)
         
