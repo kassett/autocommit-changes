@@ -45,7 +45,7 @@ runs:
         MESSAGE: ${{ inputs.commit-message }}
         UNTRACKED_FILES: ${{ inputs.untracked-files }}
       run: |
-        from subprocess import run, CalledProcess
+        from subprocess import run, CalledProcessError
         import os
         import json
         import base64
