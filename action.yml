@@ -24,95 +24,86 @@ inputs:
 outputs:
   sha:
     description: "The new sha of the commit that was created."
-    value: ${{ steps.correct.outputs.NEW_SHA }}
+    value: ${{ steps.commit.outputs.SHA }}
 
 runs:
   using: composite
   steps:
-    - name: Commit Changed Files to Github
-      id: tracked
-      shell: bash
-      run: |
-        new_sha=""
-        git fetch origin $BRANCH:$BRANCH
-        if [ "$TOKEN" = "" ]; then
-          token="$SECRET_TOKEN"
-        else
-          token="$TOKEN"
-        fi
-        export GH_TOKEN="$token"
-        
-        changed_files=$(git diff --name-only --diff-filter=M)
-        
-        for file in $changed_files; do
-          
-          sha=$( git rev-parse $BRANCH:$file )
-          
-          content=$( base64 -i $file )
-          
-          result=$(gh api --method PUT /repos/:owner/:repo/contents/$file \
-          --field message="$MESSAGE" \
-          --field content="$content" \
-          --field encoding="base64" \
-          --field branch="$BRANCH" \
-          --field sha="$sha")
-          new_sha=$(echo "$result" | jq -r '.commit.sha')
-        done
-        
-        echo "NEW_SHA=$new_sha" >> $GITHUB_OUTPUT
 
+    - name: Commit
+      id: commit
+      shell: python
       env:
-        BRANCH: ${{ inputs.branch }}
-        MESSAGE: ${{ inputs.commit-message }}
-        TOKEN: ${{ inputs.github-token }}
-        SECRET_TOKEN: ${{ github.token }}
-
-    - name: Commit Untracked Files to Github
-      id: untracked
-      if: ${{ inputs.untracked-files }} == "true"
-      shell: bash
-      run: |
-        new_sha=""
-        git fetch origin $BRANCH:$BRANCH
-        if [ "$TOKEN" = "" ]; then
-          token="$SECRET_TOKEN"
-        else
-          token="$TOKEN"
-        fi
-        export GH_TOKEN="$token"
-        
-        untracked_files=$(git ls-files --others --exclude-standard)
-        
-        for file in $untracked_files; do
-                
-          content=$( base64 -i $file )
-        
-          result=$(gh api --method PUT /repos/:owner/:repo/contents/$file \
-          --field message="$MESSAGE" \
-          --field content="$content" \
-          --field encoding="base64" \
-          --field branch="$BRANCH")
-          new_sha=$(echo "$result" | jq -r '.commit.sha')
-        done
-        
-        echo "NEW_SHA=$new_sha" >> $GITHUB_OUTPUT
-      env:
-        BRANCH: ${{ inputs.branch }}
-        MESSAGE: ${{ inputs.commit-message }}
         GH_TOKEN: ${{ inputs.github-token }}
-        SECRET_TOKEN: ${{ github.token }}
-
-    - name: Get correct sha
-      id: correct
-      shell: bash
+        BRANCH: ${{ inputs.branch }}
+        MESSAGE: ${{ inputs.commit-message }}
+        UNTRACKED_FILES: ${{ inputs.untracked-files }}
       run: |
-        if [ "$NEW_SHA2" = "" ]; then
-          echo "NEW_SHA=$NEW_SHA1" >> $GITHUB_OUTPUT
-        fi
-        echo "NEW_SHA=$NEW_SHA2" >> $GITHUB_OUTPUT
-
-      env:
-        NEW_SHA1: ${{ steps.tracked.outputs.NEW_SHA }}
-        NEW_SHA2: ${{ steps.untracked.outputs.NEW_SHA }}
-
-
+        from subprocess import run
+        import os
+        import json
+        import base64
+        
+        
+        def run_command(command: str):
+            return run(args=command, shell=True, capture_output=True, check=True).stdout.decode("utf-8").strip()
+        
+        
+        def get_branch_name():
+            return run_command("git rev-parse --abbrev-ref HEAD")
+        
+        
+        BRANCH = os.environ.get("BRANCH", get_branch_name())
+        COMMIT_UNTRACKED_FILES = True if os.environ.get("UNTRACKED_FILES", "false") == "true" else False
+        MESSAGE = os.environ.get("MESSAGE", "Github Actions Bot [skip ci]")
+        
+        
+        def list_untracked_files():
+            output = run_command("git ls-files -o --exclude-standard")
+            files = [file for file in output.split("\n") if file != ""]
+            return files
+        
+        
+        def list_tracked_files():
+            output = run_command("git ls-files -m")
+            files = [file for file in output.split("\n") if file != ""]
+            return files
+        
+        
+        def get_origin_sha(file: str) -> str:
+            output = run_command(f"git rev-parse {BRANCH}:{file}")
+            return output
+        
+        
+        def commit_file(file: str, tracked: bool):
+            content = base64.b64encode(open(file, "rb").read()).decode("utf-8")
+            route = f"/repos/:owner/:repo/contents/{file}"
+            command = f"gh api --method PUT {route} --field message=\"{MESSAGE}\" --field branch={BRANCH} --field content=\"{content}\" --field encoding=\"base64\""
+            if tracked:
+                command += f" --field sha=\"{get_origin_sha(file)}\""
+            output = run_command(command)
+            output = json.loads(output)
+            return output["commit"]["sha"]
+        
+        
+        def commit_files():
+            last_commit = ""
+            untracked_files = []
+            tracked_files = list_tracked_files()
+            if COMMIT_UNTRACKED_FILES:
+                untracked_files = list_untracked_files()
+        
+            for tracked_file in tracked_files:
+                last_commit = commit_file(tracked_file, True)
+        
+            for untracked_file in untracked_files:
+                last_commit = commit_file(untracked_file, False)
+        
+            try:
+                with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+                    print(f"SHA={last_commit}", file=fh)
+            except KeyError:
+                print(last_commit)
+        
+        
+        commit_files()
