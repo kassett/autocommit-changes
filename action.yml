@@ -30,6 +30,12 @@ runs:
   using: composite
   steps:
 
+    - name: Fetch
+      id: fetch
+      shell: bash
+      run: |
+        git fetch
+
     - name: Commit
       id: commit
       shell: python
@@ -39,7 +45,7 @@ runs:
         MESSAGE: ${{ inputs.commit-message }}
         UNTRACKED_FILES: ${{ inputs.untracked-files }}
       run: |
-        from subprocess import run
+        from subprocess import run, CalledProcess
         import os
         import json
         import base64
@@ -71,7 +77,10 @@ runs:
         
         
         def get_origin_sha(file: str) -> str:
-            output = run_command(f"git rev-parse {BRANCH}:{file}")
+            try:
+                output = run_command(f"git rev-parse {BRANCH}:{file}")
+            except CalledProcessError:
+                output = run_command(f"git rev-parse remotes/origin/{BRANCH}:{file}")
             return output
         
         
