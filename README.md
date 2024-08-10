@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@v3
         
       - name: Autocommit Changes
-        uses: kassett/autocommit-github-changes@v1
+        uses: kassett/autocommit-changes@v1
         with:
           branch: main
           use-pull-request: true
