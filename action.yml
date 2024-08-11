@@ -78,14 +78,12 @@ runs:
         }}
     shell: python
     run: |
+      import base64
+      import json
       import os
       import time
-      import json
-      import base64
       import uuid
       from subprocess import run
-      from typing import Optional
-
 
       BRANCH = os.getenv("AUTOCOMMIT_CHANGES_BRANCH")
       USE_PULL_REQUEST = os.getenv("AUTOCOMMIT_CHANGES_USE_PULL_REQUEST")
@@ -114,10 +112,10 @@ runs:
 
       def run_gh_command(
           path: str,
-          form_arguments: Optional[dict] = None,
+          form_arguments: dict | None = None,
           is_delete: bool = False,
           is_put: bool = False,
-      ) -> Optional[dict]:
+      ) -> dict | None:
           path = f"/repos/:owner/:repo/{path}"
           command = "gh api"
           if form_arguments is not None:
@@ -128,7 +126,7 @@ runs:
           command += f" {path}"
 
           if any(isinstance(v, (dict, list)) for v in (form_arguments or {}).values()):
-              temporary_path = os.path.join("/tmp", f"{str(uuid.uuid4())}.json")
+              temporary_path = os.path.join("/tmp", f"{uuid.uuid4()!s}.json")
               with open(temporary_path, "w", encoding="utf-8") as f:
                   json.dump(form_arguments, f, ensure_ascii=False, indent=4)
               command += f" --input {temporary_path}"
@@ -177,7 +175,7 @@ runs:
           def __init__(
               self,
               branch: str,
-              files: Optional[list[str]] = None,
+              files: list[str] | None = None,
               commit_untracked_files: bool = False,
               use_pull_request: bool = False,
               merge_pull_request: bool = False,
