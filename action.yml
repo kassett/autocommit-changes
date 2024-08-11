@@ -85,7 +85,7 @@ runs:
       import uuid
       from subprocess import run
 
-      # Environment variables prefixed by AUTOCOMMIT_CHANGES
+      # Environment variables prefixed by AUTOCOMMIT_CHANGES_
       BRANCH = os.getenv("AUTOCOMMIT_CHANGES_BRANCH")
       USE_PULL_REQUEST = os.getenv("AUTOCOMMIT_CHANGES_USE_PULL_REQUEST")
       MERGE_PULL_REQUEST = os.getenv("AUTOCOMMIT_CHANGES_MERGE_PULL_REQUEST")
