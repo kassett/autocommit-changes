@@ -226,10 +226,6 @@ runs:
               self.changed_files = []
 
           def find_files(self):
-              self.latest_sha = run_gh_command(f"commits/{self.original_branch}")["sha"]
-              if not self.files:
-                  self.find_files()
-              self.changed_files = [ChangedFile(file) for file in self.files]
 
               self.files = [
                   f for f in run_git_command(f"diff --name-only") if f != ""
@@ -307,6 +303,11 @@ runs:
               return output["sha"]
 
           def run(self):
+              self.latest_sha = run_gh_command(f"commits/{self.original_branch}")["sha"]
+              if not self.files:
+                  self.find_files()
+              self.changed_files = [ChangedFile(file) for file in self.files]
+
               if self.use_pull_request:
                   self.create_new_branch()
 
