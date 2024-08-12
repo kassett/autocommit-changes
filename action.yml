@@ -8,6 +8,10 @@ inputs:
       is set to true."
     required: true
 
+  github-token:
+    description: "The token that the GH cli tool will use."
+    required: true
+
   use-pull-request:
     description: "If 'true', changes will be committed to a separate branch; a PR
       will subsequently be opened from the PR branch. Defaults to 'false'"
@@ -65,6 +69,7 @@ runs:
   - name: Autocommit Changes
     id: autocommit_changes
     env:
+      GH_TOKEN: ${{ inputs.github-token }}
       AUTOCOMMIT_CHANGES_BRANCH: ${{ inputs.branch }}
       AUTOCOMMIT_CHANGES_USE_PULL_REQUEST: ${{ inputs.use-pull-request }}
       AUTOCOMMIT_CHANGES_MERGE_PULL_REQUEST: ${{ inputs.merge-pull-request }}
