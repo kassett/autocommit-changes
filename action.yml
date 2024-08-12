@@ -119,8 +119,6 @@ runs:
       PULL_REQUEST_TITLE = os.getenv("AUTOCOMMIT_CHANGES_PULL_REQUEST_TITLE")
       PULL_REQUEST_BODY = os.getenv("AUTOCOMMIT_CHANGES_PULL_REQUEST_BODY")
       DELETE_BRANCH_AFTER_MERGE = os.getenv("AUTOCOMMIT_CHANGES_DELETE_BRANCH_AFTER_MERGE")
-      RETRIES = int(os.getenv("AUTOCOMMIT_CHANGES_RETRIES"))
-      RETRY_WAIT_TIME = int(os.getenv("AUTOCOMMIT_CHANGES_RETRY_WAIT_TIME"))
       GIT_ROOT = (
           run(args="git rev-parse --show-toplevel", shell=True, capture_output=True, check=True)
           .stdout.decode("utf-8")
@@ -133,6 +131,12 @@ runs:
               args=f"git {command}", shell=True, capture_output=True, check=True, cwd=GIT_ROOT
           )
           return [x for x in output.stdout.decode("utf-8").strip().split("\n") if x != ""]
+
+
+      def clean_environment():
+          run_git_command("stash")
+          run_git_command("pull")
+          run_git_command("pop")
 
 
       def run_gh_command(
@@ -162,6 +166,11 @@ runs:
           output = run(args=command, shell=True, capture_output=True, check=True, cwd=GIT_ROOT)
           if output.stdout is not None and output.stdout.decode("utf-8").strip() != "":
               return json.loads(output.stdout.decode("utf-8").strip())
+
+
+      class CommitConflictError(ValueError):
+          def __init__(self, message: str):
+              super().__init__(message)
 
 
       class ChangedFile:
@@ -212,13 +221,16 @@ runs:
               self.original_branch = branch
               self.working_branch = branch
               self.commit_untracked_files = commit_untracked_files
-              self.latest_sha = run_gh_command(f"commits/{self.original_branch}")["sha"]
+              self.latest_sha = None
               self.files = files
+              self.changed_files = []
+
+          def find_files(self):
+              self.latest_sha = run_gh_command(f"commits/{self.original_branch}")["sha"]
               if not self.files:
                   self.find_files()
               self.changed_files = [ChangedFile(file) for file in self.files]
 
-          def find_files(self):
               self.files = [
                   f for f in run_git_command(f"diff --name-only") if f != ""
               ]
@@ -248,11 +260,17 @@ runs:
                   "tree": tree,
                   "message": COMMIT_MESSAGE,
               }
-              output = run_gh_command("git/commits", arguments)
+              try:
+                  output = run_gh_command("git/commits", arguments)
+              except CalledProcessError:
+                  raise CommitConflictError(f"The tree is not updated with the remote.")
               return output["sha"]
 
           def commit_to_branch(self, sha: str):
-              run_gh_command(f"git/refs/heads/{self.working_branch}", {"sha": sha})
+              try:
+                  run_gh_command(f"git/refs/heads/{self.working_branch}", {"sha": sha})
+              except CalledProcessError:
+                  raise CommitConflictError(f"The tree is not updated with the remote.")
 
           def open_pull_request(self):
               return run_gh_command(
@@ -266,11 +284,14 @@ runs:
               )["number"]
 
           def merge_pr(self, number: int):
-              run_gh_command(
-                  f"pulls/{number}/merge",
-                  {"commit_title": PULL_REQUEST_TITLE, "commit_message": COMMIT_MESSAGE},
-                  is_put=True,
-              )
+              try:
+                  run_gh_command(
+                      f"pulls/{number}/merge",
+                      {"commit_title": PULL_REQUEST_TITLE, "commit_message": COMMIT_MESSAGE},
+                      is_put=True,
+                  )
+              except CalledProcessError:
+                  raise CommitConflictError(f"The tree is not updated with the remote.")
               if self.delete_branch_after_merge:
                   run_gh_command(f"git/refs/heads/{self.working_branch}", is_delete=True)
 
@@ -279,7 +300,10 @@ runs:
                   "base_tree": base_tree,
                   "tree": [c.as_dict() for c in self.changed_files],
               }
-              output = run_gh_command("git/trees", arguments)
+              try:
+                  output = run_gh_command("git/trees", arguments)
+              except CalledProcessError:
+                  raise CommitConflictError(f"The tree is not updated with the remote.")
               return output["sha"]
 
           def run(self):
@@ -300,20 +324,20 @@ runs:
           if BRANCH is None:
               raise ValueError("A branch must be specified via the inputs to the action.")
 
-          for _ in range(RETRIES + 1):
-              try:
-                  gc = GitCommitter(
-                      branch=BRANCH,
-                      files=FILES,
-                      commit_untracked_files=COMMIT_UNTRACKED_FILES == "true",
-                      use_pull_request=USE_PULL_REQUEST == "true",
-                      merge_pull_request=MERGE_PULL_REQUEST == "true",
-                      delete_branch_after_merge=DELETE_BRANCH_AFTER_MERGE == "true",
-                  )
-                  gc.run()
-              except CalledProcessError:
-                  run_git_command("fetch")
-                  time.sleep(RETRY_WAIT_TIME)
+          gc = GitCommitter(
+              branch=BRANCH,
+              files=FILES,
+              commit_untracked_files=COMMIT_UNTRACKED_FILES == "true",
+              use_pull_request=USE_PULL_REQUEST == "true",
+              merge_pull_request=MERGE_PULL_REQUEST == "true",
+              delete_branch_after_merge=DELETE_BRANCH_AFTER_MERGE == "true",
+          )
+
+          try:
+              gc.run()
+          except CommitConflictError:
+              clean_environment()
+              gc.run()
 
 
       if __name__ == "__main__":
