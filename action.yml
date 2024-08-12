@@ -313,6 +313,7 @@ runs:
                   gc.run()
               except CalledProcessError:
                   run_git_command("fetch")
+                  time.sleep(RETRY_WAIT_TIME)
 
 
       if __name__ == "__main__":
