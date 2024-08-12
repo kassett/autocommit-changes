@@ -278,6 +278,9 @@ runs:
 
 
       def main():
+          if BRANCH is None:
+              raise ValueError("A branch must be specified via the inputs to the action.")
+
           gc = GitCommitter(
               branch=BRANCH,
               files=FILES,
