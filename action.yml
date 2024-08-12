@@ -63,7 +63,7 @@ inputs:
   retries:
     description: "Number of potential retries, useful if there are multiple jobs making
       changes."
-    default: "3"
+    default: "0"
     required: false
 
   retry-wait-time:
