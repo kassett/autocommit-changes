@@ -60,6 +60,17 @@ inputs:
     required: false
     default: "false"
 
+  retries:
+    description: "Number of potential retries, useful if there are multiple jobs making
+      changes."
+    default: "3"
+    required: false
+
+  retry-wait-time:
+    description: "Number of time (in seconds) to wait between retries."
+    default: "30"
+    required: false
+
 runs:
   using: composite
   steps:
@@ -85,6 +96,8 @@ runs:
       AUTOCOMMIT_CHANGES_PULL_REQUEST_BODY: ${{ inputs.pull-request-body }}
       AUTOCOMMIT_CHANGES_DELETE_BRANCH_AFTER_MERGE: ${{ inputs.delete-branch-after-merge
         }}
+      AUTOCOMMIT_CHANGES_RETRIES: ${{ inputs.retries }}
+      AUTOCOMMIT_CHANGES_RETRY_WAIT_TIME: ${{ inputs.retry-wait-time }}
     shell: python
     run: |
       import base64
@@ -92,7 +105,7 @@ runs:
       import os
       import time
       import uuid
-      from subprocess import run
+      from subprocess import run, CalledProcessError
 
       # Environment variables prefixed by AUTOCOMMIT_CHANGES_
       BRANCH = os.getenv("AUTOCOMMIT_CHANGES_BRANCH")
@@ -106,6 +119,8 @@ runs:
       PULL_REQUEST_TITLE = os.getenv("AUTOCOMMIT_CHANGES_PULL_REQUEST_TITLE")
       PULL_REQUEST_BODY = os.getenv("AUTOCOMMIT_CHANGES_PULL_REQUEST_BODY")
       DELETE_BRANCH_AFTER_MERGE = os.getenv("AUTOCOMMIT_CHANGES_DELETE_BRANCH_AFTER_MERGE")
+      RETRIES = int(os.getenv("AUTOCOMMIT_CHANGES_RETRIES"))
+      RETRY_WAIT_TIME = int(os.getenv("AUTOCOMMIT_CHANGES_RETRY_WAIT_TIME"))
       GIT_ROOT = (
           run(args="git rev-parse --show-toplevel", shell=True, capture_output=True, check=True)
           .stdout.decode("utf-8")
@@ -285,15 +300,19 @@ runs:
           if BRANCH is None:
               raise ValueError("A branch must be specified via the inputs to the action.")
 
-          gc = GitCommitter(
-              branch=BRANCH,
-              files=FILES,
-              commit_untracked_files=COMMIT_UNTRACKED_FILES == "true",
-              use_pull_request=USE_PULL_REQUEST == "true",
-              merge_pull_request=MERGE_PULL_REQUEST == "true",
-              delete_branch_after_merge=DELETE_BRANCH_AFTER_MERGE == "true",
-          )
-          gc.run()
+          for _ in range(RETRIES + 1):
+              try:
+                  gc = GitCommitter(
+                      branch=BRANCH,
+                      files=FILES,
+                      commit_untracked_files=COMMIT_UNTRACKED_FILES == "true",
+                      use_pull_request=USE_PULL_REQUEST == "true",
+                      merge_pull_request=MERGE_PULL_REQUEST == "true",
+                      delete_branch_after_merge=DELETE_BRANCH_AFTER_MERGE == "true",
+                  )
+                  gc.run()
+              except CalledProcessError:
+                  run_git_command("fetch")
 
 
       if __name__ == "__main__":
