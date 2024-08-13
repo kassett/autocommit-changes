@@ -303,7 +303,10 @@ runs:
               return output["sha"]
 
           def run(self):
-              self.latest_sha = run_gh_command(f"commits/{self.original_branch}")["sha"]
+              sha = run_gh_command(f"commits/{self.original_branch}")["sha"]
+              if sha is None:
+                  raise ValueError("Why is this None")
+              self.latest_sha = sha
               if not self.files:
                   self.find_files()
               self.changed_files = [ChangedFile(file) for file in self.files]
