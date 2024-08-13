@@ -71,6 +71,11 @@ inputs:
     default: "30"
     required: false
 
+outputs:
+  sha:
+    description: "The new sha of the commit that was created."
+    value: ${{ steps.commit.outputs.SHA }}
+
 runs:
   using: composite
   steps:
@@ -95,6 +100,7 @@ runs:
     shell: python
     run: |
       import base64
+      import contextlib
       import json
       import os
       import time
@@ -132,6 +138,12 @@ runs:
           run_git_command("config pull.rebase false")
           run_git_command(f"pull origin {BRANCH}")
           run_git_command("stash pop")
+
+
+      def export_new_commit(sha: str):
+          with contextlib.suppress(KeyError, FileNotFoundError):
+              with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+                  print(f"SHA={sha}", file=fh)
 
 
       def run_gh_command(
@@ -255,7 +267,10 @@ runs:
                   output = run_gh_command("git/commits", arguments)
               except CalledProcessError:
                   raise CommitConflictError(f"The tree is not updated with the remote.")
-              return output["sha"]
+
+              new_commit = output["sha"]
+              export_new_commit(new_commit)
+              return new_commit
 
           def commit_to_branch(self, sha: str):
               try:
@@ -305,6 +320,9 @@ runs:
               if not self.files:
                   self.find_files()
               self.changed_files = [ChangedFile(file) for file in self.files]
+
+              if len(self.changed_files) == 0:
+                  exit(0)
 
               if self.use_pull_request:
                   self.create_new_branch()
