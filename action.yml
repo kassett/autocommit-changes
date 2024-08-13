@@ -60,21 +60,10 @@ inputs:
     required: false
     default: "false"
 
-  retries:
-    description: "Number of potential retries, useful if there are multiple jobs making
-      changes."
-    default: "0"
-    required: false
-
-  retry-wait-time:
-    description: "Number of time (in seconds) to wait between retries."
-    default: "30"
-    required: false
-
 outputs:
   sha:
     description: "The new sha of the commit that was created."
-    value: ${{ steps.commit.outputs.SHA }}
+    value: ${{ steps.autocommit_changes.outputs.SHA }}
 
 runs:
   using: composite
@@ -95,8 +84,6 @@ runs:
       AUTOCOMMIT_CHANGES_PULL_REQUEST_BODY: ${{ inputs.pull-request-body }}
       AUTOCOMMIT_CHANGES_DELETE_BRANCH_AFTER_MERGE: ${{ inputs.delete-branch-after-merge
         }}
-      AUTOCOMMIT_CHANGES_RETRIES: ${{ inputs.retries }}
-      AUTOCOMMIT_CHANGES_RETRY_WAIT_TIME: ${{ inputs.retry-wait-time }}
     shell: python
     run: |
       import base64
