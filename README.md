@@ -18,8 +18,12 @@ This GitHub Action allows you to commit changes to a Git repository within a Git
 | `pull-request-title`        | The title of the pull request created by this action.                                               | `Auto-generated PR`                          | false    |
 | `pull-request-body`         | The body of the pull request created by this action.                                                | `Pull request opened by Github Actions Bot.` | false    |
 | `delete-branch-after-merge` | If `true`, the branch used for the pull request will be deleted after the merge.                    | `false`                                      | false    |
-| `retries`                   | Defaults to 0. This is useful when there are conflicting commits from different jobs.               | `0`                                          | false    |
-| `retry-wait-time`           | Wait time in seconds between retries. Defaults to "30".                                             | `30`                                         | false    |
+
+## Outputs
+
+| Input | Description                                                   |
+|-------|---------------------------------------------------------------|
+| `sha` | The SHA of the commit made. Will be `""` if no commit was made. |
 
 ## Usage
 
@@ -47,3 +51,28 @@ jobs:
           pull-request-title: "Auto-commit PR"
           pull-request-body: "This PR was generated automatically by GitHub Actions."
           delete-branch-after-merge: true
+```
+
+One important thing to note is that this action should never run on a branch that has a detached HEAD; therefore, 
+when using this action in a workflow invoked on `pull_request`, the workflow should checkout to the feature-branch.
+Below is an example:
+
+```yaml
+name: Autocommit Changes
+
+on: [pull_request]
+
+jobs:
+  autocommit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+        
+      - name: Autocommit Changes
+        uses: kassett/autocommit-changes@v1
+        with:
+          branch: ${{ github.head_ref }}
+```
