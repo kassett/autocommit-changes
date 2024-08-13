@@ -74,13 +74,6 @@ inputs:
 runs:
   using: composite
   steps:
-  - name: Checkout code
-    uses: actions/checkout@v4
-    with:
-      ref: ${{ inputs.branch }}
-
-  - name: Debugging with tmate
-    uses: mxschmitt/action-tmate@v3.18
 
   - name: Autocommit Changes
     id: autocommit_changes
