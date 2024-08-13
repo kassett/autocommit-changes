@@ -77,9 +77,8 @@ runs:
   - name: Checkout code
     uses: actions/checkout@v4
 
-  - name: Fetch branches
-    run: git fetch
-    shell: bash
+  - name: Debugging with tmate
+    uses: mxschmitt/action-tmate@v3.18
 
   - name: Autocommit Changes
     id: autocommit_changes
