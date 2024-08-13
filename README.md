@@ -21,9 +21,9 @@ This GitHub Action allows you to commit changes to a Git repository within a Git
 
 ## Outputs
 
-| Input | Description                                                   |
-|-------|---------------------------------------------------------------|
-| `sha` | The SHA of the commit made. Will be `""` if no commit was made. |
+| Output  | Description                                                     |
+|---------|-----------------------------------------------------------------|
+| `sha`   | The SHA of the commit made. Will be `""` if no commit was made. |
 
 ## Usage
 
