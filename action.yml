@@ -135,7 +135,7 @@ runs:
           run_git_command("stash")
           run_git_command("config pull.rebase false")
           run_git_command(f"pull origin {BRANCH}")
-          run_git_command("pop")
+          run_git_command("stash pop")
 
 
       def run_gh_command(
