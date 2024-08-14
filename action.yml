@@ -328,8 +328,6 @@ runs:
           if BRANCH is None:
               raise ValueError("A branch must be specified via the inputs to the action.")
 
-          clean_environment()
-
           gc = GitCommitter(
               branch=BRANCH,
               files=FILES,
