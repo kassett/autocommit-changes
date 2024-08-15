@@ -342,7 +342,6 @@ runs:
           core.info(f"Updated tree is {new_tree}")
 
           core.info("Sleeping for 100 seconds")
-          time.sleep(100)
 
           new_commit = commit_the_tree(new_tree)
           core.info(f"Newest commit is {new_commit}")
