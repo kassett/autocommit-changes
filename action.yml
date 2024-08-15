@@ -76,6 +76,7 @@ runs:
   - name: Autocommit Changes
     id: autocommit_changes
     env:
+      PYTHONUNBUFFERED: 1
       GH_TOKEN: ${{ inputs.github-token }}
       AUTOCOMMIT_CHANGES_BRANCH: ${{ inputs.branch }}
       AUTOCOMMIT_CHANGES_USE_PULL_REQUEST: ${{ inputs.use-pull-request }}
