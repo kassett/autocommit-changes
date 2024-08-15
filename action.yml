@@ -339,8 +339,6 @@ runs:
           new_tree = create_new_tree(working_tree, files_changed)
           core.info(f"Updated tree is {new_tree}")
 
-          core.info("Sleeping for 100 seconds")
-
           new_commit = commit_the_tree(new_tree)
           core.info(f"Newest commit is {new_commit}")
 
