@@ -219,6 +219,7 @@ runs:
                   self.create_blob()
 
           def create_blob(self):
+              core.info(f"Commit blob of file {self.path}")
               response = run_gh_command(
                   "git/blobs", {"encoding": "base64", "content": self.content}
               )
