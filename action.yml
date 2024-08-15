@@ -69,9 +69,6 @@ runs:
   using: composite
   steps:
 
-  - name: Debugging with tmate
-    uses: mxschmitt/action-tmate@v3.18
-
   - name: Autocommit Changes
     id: autocommit_changes
     env:
