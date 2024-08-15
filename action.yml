@@ -92,7 +92,7 @@ runs:
       import time
       import base64
       import contextlib
-      from subprocess import run
+      from subprocess import run, CalledProcessError
 
 
       # Environment variables prefixed by AUTOCOMMIT_CHANGES_
@@ -157,11 +157,20 @@ runs:
 
       def refresh_environment():
           # If this fails, there was sure to be a merge conflict anyway
+
+          local_changes = False
+          if len(run_git_command("diff --name-only")) > 0:
+              local_changes = True
+
           run_git_command("fetch")
-          run_git_command("stash")
+
+          if local_changes:
+              run_git_command("stash")
           run_git_command("config pull.rebase false")
           run_git_command(f"pull")
-          run_git_command("stash pop")
+
+          if local_changes:
+              run_git_command("stash pop")
 
 
       def export_new_commit(sha: str):
