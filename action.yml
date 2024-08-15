@@ -69,6 +69,10 @@ runs:
   using: composite
   steps:
 
+  - name: Install actions-toolkit
+    run: pip install actions-toolkit
+    shell: bash
+
   - name: Autocommit Changes
     id: autocommit_changes
     env:
@@ -93,6 +97,7 @@ runs:
       import time
       import base64
       import contextlib
+      from actions_toolkit import core
       from subprocess import run
 
 
@@ -113,16 +118,6 @@ runs:
           .stdout.decode("utf-8")
           .strip()
       )
-
-
-      def error(message: str):
-          message = f"::error {message}"
-          print(message)
-
-
-      def info(message: str):
-          sys.stdout.write(message + os.linesep)
-
 
       def run_git_command(command: str) -> list[str]:
           output = run(
@@ -200,7 +195,7 @@ runs:
           def handle_changed_remote(cls):
               new_sha = run_gh_command(f"commits/{BRANCH}", check_for_latest=False)["sha"]
               if new_sha != cls.latest_sha:
-                  info("Restarting commit process as a new ref was found.")
+                  core.info("Restarting commit process as a new ref was found.")
                   run_commit_process()
                   exit(0)
 
@@ -319,52 +314,52 @@ runs:
 
 
       def run_commit_process():
-          info(f"Pulling the latest version of {BRANCH}")
+          core.info(f"Pulling the latest version of {BRANCH}")
 
           refresh_environment()
           LatestSHA.init()
 
-          info(f"Working off the latest commit to branch {BRANCH}: {LatestSHA.latest_sha}")
+          core.info(f"Working off the latest commit to branch {BRANCH}: {LatestSHA.latest_sha}")
 
           files_changed = [f for f in FILES if diverged_from_remote(f)] if len(FILES) > 0 else find_files()
           if len(files_changed) == 0:
-              info(f"No files have been changed since {LatestSHA.latest_sha}")
+              core.info(f"No files have been changed since {LatestSHA.latest_sha}")
               exit(0)
 
           files_changed = [ChangedFile(f) for f in files_changed]
-          info(f"{len(files_changed)} file changes since {LatestSHA.latest_sha}")
+          core.info(f"{len(files_changed)} file changes since {LatestSHA.latest_sha}")
 
           working_branch = BRANCH
           if USE_PULL_REQUEST == "true":
               working_branch = create_new_branch()
-              info(f"Committing changes to branch {working_branch}")
+              core.info(f"Committing changes to branch {working_branch}")
 
           working_tree = get_tree_tip()
-          info(f"Making changes to tree {working_tree}")
+          core.info(f"Making changes to tree {working_tree}")
 
           new_tree = create_new_tree(working_tree, files_changed)
-          info(f"Updated tree is {new_tree}")
+          core.info(f"Updated tree is {new_tree}")
 
-          info("Sleeping for 100 seconds")
+          core.info("Sleeping for 100 seconds")
           time.sleep(100)
 
           new_commit = commit_the_tree(new_tree)
-          info(f"Newest commit is {new_commit}")
+          core.info(f"Newest commit is {new_commit}")
 
           export_new_commit(new_commit)
 
           update_branch(working_branch, new_commit)
-          info(f"Remote ref updated")
+          core.info(f"Remote ref updated")
 
           if working_branch != BRANCH:
               pr_number = open_pull_request(BRANCH, working_branch)
-              info(f"Pull request opened to {BRANCH}")
+              core.info(f"Pull request opened to {BRANCH}")
               if MERGE_PULL_REQUEST == "true":
                   merge_pull_request(pr_number)
-                  info(f"Pull request to {BRANCH} merged")
+                  core.info(f"Pull request to {BRANCH} merged")
                   if DELETE_BRANCH_AFTER_MERGE == "true":
                       run_gh_command(f"git/refs/heads/{working_branch}", is_delete=True, check_for_latest=False)
-                      info(f"Temporary branch {working_branch} deleted.")
+                      core.info(f"Temporary branch {working_branch} deleted.")
 
 
       if __name__ == "__main__":
