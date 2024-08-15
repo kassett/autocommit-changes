@@ -147,14 +147,11 @@ runs:
 
           command += f" {path}"
 
-          if any(isinstance(v, (dict, list)) for v in (form_arguments or {}).values()):
+          if form_arguments is not None:
               temporary_path = os.path.join("/tmp", f"{uuid.uuid4()!s}.json")
               with open(temporary_path, "w", encoding="utf-8") as f:
                   json.dump(form_arguments, f, ensure_ascii=False, indent=4)
               command += f" --input {temporary_path}"
-          else:
-              for k, v in (form_arguments or {}).items():
-                  command += f" -f {k}='{v}'"
 
           output = run(args=command, shell=True, capture_output=True, check=True, cwd=GIT_ROOT)
           if output.stdout is not None and output.stdout.decode("utf-8").strip() != "":
