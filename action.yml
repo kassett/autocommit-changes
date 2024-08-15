@@ -91,8 +91,11 @@ runs:
       import uuid
       import time
       import base64
+      import logging
       import contextlib
-      from subprocess import run, CalledProcessError
+      from subprocess import run
+
+      logger = logging.getLogger(__name__)
 
 
       # Environment variables prefixed by AUTOCOMMIT_CHANGES_
@@ -190,6 +193,7 @@ runs:
           def handle_changed_remote(cls):
               new_sha = run_gh_command(f"commits/{BRANCH}", check_for_latest=False)["sha"]
               if new_sha != cls.latest_sha:
+                  logger.info("Restarting commit process as a new ref was found.")
                   run_commit_process()
                   exit(0)
 
@@ -308,31 +312,52 @@ runs:
 
 
       def run_commit_process():
+          logger.info(f"Pulling the latest version of {BRANCH}")
+
           refresh_environment()
           LatestSHA.init()
 
+          logger.info(f"Working off the latest commit to branch {BRANCH}: {LatestSHA.latest_sha}")
+
           files_changed = [f for f in FILES if diverged_from_remote(f)] if len(FILES) > 0 else find_files()
           if len(files_changed) == 0:
+              logger.info(f"No files have been changed since {LatestSHA.latest_sha}")
               exit(0)
 
           files_changed = [ChangedFile(f) for f in files_changed]
+          logger.info(f"{len(files_changed)} file changes since {LatestSHA.latest_sha}")
 
           working_branch = BRANCH
           if USE_PULL_REQUEST == "true":
               working_branch = create_new_branch()
+              logger.info(f"Committing changes to branch {working_branch}")
 
           working_tree = get_tree_tip()
+          logger.info(f"Making changes to tree {working_tree}")
+
           new_tree = create_new_tree(working_tree, files_changed)
+          logger.info(f"Updated tree is {new_tree}")
+
+          logger.info("Sleeping for 100 seconds")
+          time.sleep(100)
+
           new_commit = commit_the_tree(new_tree)
+          logger.info(f"Newest commit is {new_commit}")
+
           export_new_commit(new_commit)
+
           update_branch(working_branch, new_commit)
+          logger.info(f"Remote ref updated")
 
           if working_branch != BRANCH:
               pr_number = open_pull_request(BRANCH, working_branch)
+              logger.info(f"Pull request opened to {BRANCH}")
               if MERGE_PULL_REQUEST == "true":
                   merge_pull_request(pr_number)
+                  logger.info(f"Pull request to {BRANCH} merged")
                   if DELETE_BRANCH_AFTER_MERGE == "true":
                       run_gh_command(f"git/refs/heads/{working_branch}", is_delete=True, check_for_latest=False)
+                      logger.info(f"Temporary branch {working_branch} deleted.")
 
 
       if __name__ == "__main__":
