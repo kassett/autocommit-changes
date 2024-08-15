@@ -69,6 +69,12 @@ runs:
   using: composite
   steps:
 
+  - name: Checkout code
+    uses: actions/checkout@v4
+    with:
+      fetch-depth: 0
+      ref: ${{ inputs.branch }}
+
   - name: Debugging with tmate
     uses: mxschmitt/action-tmate@v3.18
 
