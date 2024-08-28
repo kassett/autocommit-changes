@@ -60,6 +60,16 @@ inputs:
     required: false
     default: "false"
 
+  pull-request-reviewer-users:
+    description: "Comma-separated list of users to be tagged for review if a PR is opened and not auto-merged"
+    required: false
+    default: ""
+
+  pull-request-reviewer-teams:
+    description: "Comma-separated list of teams to be tagged for review if a PR is opened and not auto-merged"
+    required: false
+    default: ""
+
 outputs:
   sha:
     description: "The new sha of the commit that was created."
@@ -82,13 +92,13 @@ runs:
       AUTOCOMMIT_CHANGES_USE_PULL_REQUEST: ${{ inputs.use-pull-request }}
       AUTOCOMMIT_CHANGES_MERGE_PULL_REQUEST: ${{ inputs.merge-pull-request }}
       AUTOCOMMIT_CHANGES_FILES: ${{ inputs.files }}
-      AUTOCOMMIT_CHANGES_COMMIT_UNTRACKED_FILES: ${{ inputs.commit-untracked-files
-        }}
+      AUTOCOMMIT_CHANGES_COMMIT_UNTRACKED_FILES: ${{ inputs.commit-untracked-files }}
       AUTOCOMMIT_CHANGES_COMMIT_MESSAGE: ${{ inputs.commit-message }}
       AUTOCOMMIT_CHANGES_PULL_REQUEST_TITLE: ${{ inputs.pull-request-title }}
       AUTOCOMMIT_CHANGES_PULL_REQUEST_BODY: ${{ inputs.pull-request-body }}
-      AUTOCOMMIT_CHANGES_DELETE_BRANCH_AFTER_MERGE: ${{ inputs.delete-branch-after-merge
-        }}
+      AUTOCOMMIT_CHANGES_DELETE_BRANCH_AFTER_MERGE: ${{ inputs.delete-branch-after-merge }}
+      AUTOCOMMIT_CHANGES_PR_REVIEWER_USERS: ${{ inputs.pull-request-reviewer-users }}
+      AUTOCOMMIT_CHANGES_PR_REVIEWER_TEAMS: ${{ inputs.pull-request-reviewer-teams }}
     shell: python
     run: |
       import os
@@ -119,6 +129,8 @@ runs:
           .stdout.decode("utf-8")
           .strip()
       )
+      PR_REVIEWER_USERS = [u.strip() for u in os.getenv("AUTOCOMMIT_CHANGES_PR_REVIEWER_USERS", "").split(",")]
+      PR_REVIEWER_TEAMS = [t.strip() for t in os.getenv("AUTOCOMMIT_CHANGES_PR_REVIEWER_TEAMS", "").split(",")]
 
       def run_git_command(command: str) -> list[str]:
           output = run(
@@ -356,7 +368,13 @@ runs:
                   if DELETE_BRANCH_AFTER_MERGE == "true":
                       run_gh_command(f"git/refs/heads/{working_branch}", is_delete=True, check_for_latest=False)
                       core.info(f"Temporary branch {working_branch} deleted.")
-
+              elif PR_REVIEWER_USERS or PR_REVIEWER_TEAMS:
+                  params = {}
+                  if PR_REVIEWER_USERS:
+                      params["reviewers"] = PR_REVIEWER_USERS
+                  if PR_REVIEWER_TEAMS:
+                      params["team_reviewers"] = PR_REVIEWER_TEAMS
+                  run_gh_command(f"pulls/{pr_number}/requested_reviewers", params, check_for_latest=False)
 
       if __name__ == "__main__":
           run_commit_process()

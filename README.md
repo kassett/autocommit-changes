@@ -6,18 +6,20 @@ This GitHub Action allows you to commit changes to a Git repository within a Git
 
 ## Inputs
 
-| Input                       | Description                                                                                         | Default                                      | Required |
-|-----------------------------|-----------------------------------------------------------------------------------------------------|----------------------------------------------|----------|
-| `branch`                    | The branch to be committed to, or the base branch if `use-pull-request` is set to `true`.           | N/A                                          | true     |
-| `github-token`              | The token that the GH cli tool will use.                                                            | N/A                                          | true     |
-| `use-pull-request`          | If `true`, changes will be committed to a separate branch and a PR will be opened to merge changes. | `false`                                      | false    |
-| `merge-pull-request`        | Automatically merge the pull request into the base branch after creation.                           | `false`                                      | false    |
-| `files`                     | A list of files to be committed. If left empty, changes will be dynamically detected.               | `""`                                         | false    |
-| `commit-untracked-files`    | Whether to include untracked (new) files in the commit.                                             | `false`                                      | false    |
-| `commit-message`            | The message to use for the commit.                                                                  | `Auto-committed files [skip ci]`             | false    |
-| `pull-request-title`        | The title of the pull request created by this action.                                               | `Auto-generated PR`                          | false    |
-| `pull-request-body`         | The body of the pull request created by this action.                                                | `Pull request opened by Github Actions Bot.` | false    |
-| `delete-branch-after-merge` | If `true`, the branch used for the pull request will be deleted after the merge.                    | `false`                                      | false    |
+| Input                         | Description                                                                                         | Default                                      | Required |
+|-------------------------------|-----------------------------------------------------------------------------------------------------|----------------------------------------------|----------|
+| `branch`                      | The branch to be committed to, or the base branch if `use-pull-request` is set to `true`.           | N/A                                          | true     |
+| `github-token`                | The token that the GH cli tool will use.                                                            | N/A                                          | true     |
+| `use-pull-request`            | If `true`, changes will be committed to a separate branch and a PR will be opened to merge changes. | `false`                                      | false    |
+| `merge-pull-request`          | Automatically merge the pull request into the base branch after creation.                           | `false`                                      | false    |
+| `files`                       | A list of files to be committed. If left empty, changes will be dynamically detected.               | `""`                                         | false    |
+| `commit-untracked-files`      | Whether to include untracked (new) files in the commit.                                             | `false`                                      | false    |
+| `commit-message`              | The message to use for the commit.                                                                  | `Auto-committed files [skip ci]`             | false    |
+| `pull-request-title`          | The title of the pull request created by this action.                                               | `Auto-generated PR`                          | false    |
+| `pull-request-body`           | The body of the pull request created by this action.                                                | `Pull request opened by Github Actions Bot.` | false    |
+| `delete-branch-after-merge`   | If `true`, the branch used for the pull request will be deleted after the merge.                    | `false`                                      | false    |
+| `pull-request-reviewer-users` | Comma-separated list of users to be tagged for review if a PR is opened and not auto-merged         | `""`                                         | false    |
+| `pull-request-reviewer-teams` | Comma-separated list of teams to be tagged for review if a PR is opened and not auto-merged         | `""`                                         | false    |
 
 ## Outputs
 
