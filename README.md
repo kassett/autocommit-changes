@@ -4,6 +4,11 @@ This GitHub Action allows you to commit changes to a Git repository within a Git
 
 <b><i>This action is managed by a private repository.</i></b>
 
+## What's new in V2
+Version v2 added supported for the following:
+* Specifying a specific branch name when using the pull request workflow
+* Assigning pull requests to teams or users for review after the pull request has been created
+
 ## Inputs
 
 | Input                         | Description                                                                                                           | Default                                      | Required |
