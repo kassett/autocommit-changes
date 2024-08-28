@@ -60,6 +60,25 @@ inputs:
     required: false
     default: "false"
 
+  pull-request-branch-name:
+    description: "The name of the feature branch created when a PR is opened. Defaults
+      to a branch name generated from the timestamp."
+    required: false
+    default: ""
+
+  pull-request-team-reviewers:
+    description: "A comma-separated list of teams to be assigned for review when a
+      pull request is opened but not merged automatically."
+    required: false
+    default: ""
+
+  pull-request-user-reviewers:
+    description: "A comma-separated list of users to be assigned for review when a
+      pull request is opened but not merged automatically."
+    required: false
+    default: ""
+
+
 outputs:
   sha:
     description: "The new sha of the commit that was created."
@@ -89,10 +108,15 @@ runs:
       AUTOCOMMIT_CHANGES_PULL_REQUEST_BODY: ${{ inputs.pull-request-body }}
       AUTOCOMMIT_CHANGES_DELETE_BRANCH_AFTER_MERGE: ${{ inputs.delete-branch-after-merge
         }}
+      AUTOCOMMIT_CHANGES_PULL_REQUEST_BRANCH_NAME: ${{ inputs.pull-request-branch-name
+        }}
+      AUTOCOMMIT_CHANGES_PULL_REQUEST_USER_REVIEWERS: ${{ inputs.pull-request-user-reviewers
+        }}
+      AUTOCOMMIT_CHANGES_PULL_REQUEST_TEAM_REVIEWERS: ${{ inputs.pull-request-team-reviewers
+        }}
     shell: python
     run: |
       import os
-      import sys
       import json
       import uuid
       import time
@@ -113,12 +137,22 @@ runs:
       COMMIT_MESSAGE = os.getenv("AUTOCOMMIT_CHANGES_COMMIT_MESSAGE")
       PULL_REQUEST_TITLE = os.getenv("AUTOCOMMIT_CHANGES_PULL_REQUEST_TITLE")
       PULL_REQUEST_BODY = os.getenv("AUTOCOMMIT_CHANGES_PULL_REQUEST_BODY")
+      PULL_REQUEST_BRANCH_NAME = os.getenv("AUTOCOMMIT_CHANGES_PULL_REQUEST_BRANCH_NAME")
+      PULL_REQUEST_TEAM_REVIEWERS = [
+          x.strip()
+          for x in os.getenv("AUTOCOMMIT_CHANGES_PULL_REQUEST_TEAM_REVIEWERS").split(",") if x.strip() != ""
+      ]
+      PULL_REQUEST_USER_REVIEWERS = [
+          x.strip()
+          for x in os.getenv("AUTOCOMMIT_CHANGES_PULL_REQUEST_USER_REVIEWERS").split(",") if x.strip() != ""
+      ]
       DELETE_BRANCH_AFTER_MERGE = os.getenv("AUTOCOMMIT_CHANGES_DELETE_BRANCH_AFTER_MERGE")
       GIT_ROOT = (
           run(args="git rev-parse --show-toplevel", shell=True, capture_output=True, check=True)
           .stdout.decode("utf-8")
           .strip()
       )
+
 
       def run_git_command(command: str) -> list[str]:
           output = run(
@@ -128,13 +162,12 @@ runs:
 
 
       def run_gh_command(
-              path: str,
-              form_arguments: dict | None = None,
-              is_delete: bool = False,
-              is_put: bool = False,
-              check_for_latest: bool = True
+          path: str,
+          form_arguments: dict | None = None,
+          is_delete: bool = False,
+          is_put: bool = False,
+          check_for_latest: bool = True,
       ) -> dict | None:
-
           if check_for_latest:
               LatestSHA.handle_changed_remote()
 
@@ -187,7 +220,9 @@ runs:
 
           @classmethod
           def init(cls):
-              cls.latest_sha = run_gh_command(f"commits/{BRANCH}", check_for_latest=False)["sha"]
+              cls.latest_sha = run_gh_command(f"commits/{BRANCH}", check_for_latest=False)[
+                  "sha"
+              ]
 
           @classmethod
           def handle_changed_remote(cls):
@@ -232,9 +267,7 @@ runs:
 
 
       def find_files() -> list[str]:
-          files = [
-              f for f in run_git_command(f"diff --name-only") if f != ""
-          ]
+          files = [f for f in run_git_command(f"diff --name-only") if f != ""]
           if COMMIT_UNTRACKED_FILES == "true":
               files.extend(
                   [
@@ -253,7 +286,11 @@ runs:
 
 
       def create_new_branch():
-          new_branch = f"{BRANCH}-autocommit-{int(time.time())}"
+          new_branch = (
+              f"{BRANCH}-autocommit-{int(time.time())}"
+              if PULL_REQUEST_BRANCH_NAME == ""
+              else PULL_REQUEST_BRANCH_NAME
+          )
           run_gh_command(
               "git/refs", {"ref": f"refs/heads/{new_branch}", "sha": LatestSHA.latest_sha}
           )
@@ -299,7 +336,7 @@ runs:
                   "title": PULL_REQUEST_TITLE,
                   "body": PULL_REQUEST_BODY,
               },
-              check_for_latest=False
+              check_for_latest=False,
           )["number"]
 
 
@@ -308,7 +345,7 @@ runs:
               f"pulls/{pr_number}/merge",
               {"commit_title": PULL_REQUEST_TITLE, "commit_message": COMMIT_MESSAGE},
               is_put=True,
-              check_for_latest=False
+              check_for_latest=False,
           )
 
 
@@ -320,7 +357,9 @@ runs:
 
           core.info(f"Working off the latest commit to branch {BRANCH}: {LatestSHA.latest_sha}")
 
-          files_changed = [f for f in FILES if diverged_from_remote(f)] if len(FILES) > 0 else find_files()
+          files_changed = (
+              [f for f in FILES if diverged_from_remote(f)] if len(FILES) > 0 else find_files()
+          )
           if len(files_changed) == 0:
               core.info(f"No files have been changed since {LatestSHA.latest_sha}")
               exit(0)
@@ -354,8 +393,24 @@ runs:
                   merge_pull_request(pr_number)
                   core.info(f"Pull request to {BRANCH} merged")
                   if DELETE_BRANCH_AFTER_MERGE == "true":
-                      run_gh_command(f"git/refs/heads/{working_branch}", is_delete=True, check_for_latest=False)
+                      run_gh_command(
+                          f"git/refs/heads/{working_branch}",
+                          is_delete=True,
+                          check_for_latest=False,
+                      )
                       core.info(f"Temporary branch {working_branch} deleted.")
+                  elif PULL_REQUEST_TEAM_REVIEWERS != "" or PULL_REQUEST_USER_REVIEWERS != "":
+                      params = {}
+                      if PULL_REQUEST_USER_REVIEWERS != "":
+                          params["reviewers"] = PULL_REQUEST_USER_REVIEWERS
+                      if PULL_REQUEST_TEAM_REVIEWERS != "":
+                          params["team_reviewers"] = PULL_REQUEST_TEAM_REVIEWERS
+                      run_gh_command(
+                          f"pulls/{pr_number}/requested_reviewers",
+                          params,
+                          check_for_latest=False,
+                      )
+                      core.info("Assigned reviewers for the pull request.")
 
 
       if __name__ == "__main__":
