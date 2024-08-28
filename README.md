@@ -29,9 +29,10 @@ Version v2 added supported for the following:
 
 ## Outputs
 
-| Output  | Description                                                     |
-|---------|-----------------------------------------------------------------|
-| `sha`   | The SHA of the commit made. Will be `""` if no commit was made. |
+| Output   | Description                                                        |
+|----------|--------------------------------------------------------------------|
+| `sha`    | The SHA of the commit made. Will be `""` if no commit was made.    |
+| `branch` | The name of the branch created if using the pull request workflow. |
 
 ## Usage
 
