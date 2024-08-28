@@ -84,6 +84,10 @@ outputs:
     description: "The new sha of the commit that was created."
     value: ${{ steps.autocommit_changes.outputs.SHA }}
 
+  branch:
+    description: "The name of the new branch created."
+    value: ${{ steps.autocommit_changes.BRANCH }}
+
 runs:
   using: composite
   steps:
@@ -213,6 +217,12 @@ runs:
           with contextlib.suppress(KeyError, FileNotFoundError):
               with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
                   print(f"SHA={sha}", file=fh)
+
+
+      def export_new_branch(branch: str):
+          with contextlib.suppress(KeyError, FileNotFoundError):
+              with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+                  print(f"BRANCH={branch}", file=fh)
 
 
       class LatestSHA:
@@ -370,6 +380,7 @@ runs:
           working_branch = BRANCH
           if USE_PULL_REQUEST == "true":
               working_branch = create_new_branch()
+              export_new_branch(working_branch)
               core.info(f"Committing changes to branch {working_branch}")
 
           working_tree = get_tree_tip()
