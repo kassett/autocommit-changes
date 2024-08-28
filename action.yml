@@ -399,18 +399,18 @@ runs:
                           check_for_latest=False,
                       )
                       core.info(f"Temporary branch {working_branch} deleted.")
-                  elif PULL_REQUEST_TEAM_REVIEWERS != "" or PULL_REQUEST_USER_REVIEWERS != "":
-                      params = {}
-                      if PULL_REQUEST_USER_REVIEWERS != "":
-                          params["reviewers"] = PULL_REQUEST_USER_REVIEWERS
-                      if PULL_REQUEST_TEAM_REVIEWERS != "":
-                          params["team_reviewers"] = PULL_REQUEST_TEAM_REVIEWERS
-                      run_gh_command(
-                          f"pulls/{pr_number}/requested_reviewers",
-                          params,
-                          check_for_latest=False,
-                      )
-                      core.info("Assigned reviewers for the pull request.")
+              elif PULL_REQUEST_TEAM_REVIEWERS != "" or PULL_REQUEST_USER_REVIEWERS != "":
+                  params = {}
+                  if PULL_REQUEST_USER_REVIEWERS != "":
+                      params["reviewers"] = PULL_REQUEST_USER_REVIEWERS
+                  if PULL_REQUEST_TEAM_REVIEWERS != "":
+                      params["team_reviewers"] = PULL_REQUEST_TEAM_REVIEWERS
+                  run_gh_command(
+                      f"pulls/{pr_number}/requested_reviewers",
+                      params,
+                      check_for_latest=False,
+                  )
+                  core.info("Assigned reviewers for the pull request.")
 
 
       if __name__ == "__main__":
