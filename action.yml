@@ -86,7 +86,7 @@ outputs:
 
   branch:
     description: "The name of the new branch created."
-    value: ${{ steps.autocommit_changes.BRANCH }}
+    value: ${{ steps.autocommit_changes.outputs.BRANCH }}
 
 runs:
   using: composite
