@@ -74,6 +74,8 @@ runs:
     - name: Install gh-commit extension
       shell: bash
       run: gh extension install kassett/gh-commit
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
 
     - name: Run gh-commit
       id: commit
