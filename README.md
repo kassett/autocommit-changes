@@ -46,7 +46,7 @@ jobs:
         run: echo "Hello world" > hello.txt
 
       - name: Commit changes
-        uses: kassett/autocommit-action@v2
+        uses: kassett/autocommit-action@v3
         with:
           branch: main
           github-token: ${{ secrets.GITHUB_TOKEN }}
