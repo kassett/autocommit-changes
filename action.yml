@@ -130,5 +130,6 @@ runs:
             ARGS+=" \"$f\""
           done
         fi
-
+        
+        echo $ARGS
         eval gh commit $ARGS
